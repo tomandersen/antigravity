@@ -25,6 +25,21 @@
 
 namespace po = boost::program_options;
 // Make struct/class for settings
+class Settings
+{
+    public:
+        double lattice;
+    
+        double xi;
+        double yi;
+        double zi;
+
+        double ahbar;
+    
+        long nX;
+        long nY;
+        long nZ;
+};
 // make functions to evaluate Kerr metric at given x, y, z
 
 // util to read an item
@@ -32,14 +47,14 @@ static double readItem(po::variables_map &vm, const char* itemName, double defau
 {
     using std::cout;
     if (vm.count(itemName)) {
-        cout << itemName << " set to " << vm[itemName].as<double>() << " .\n";
+        cout << itemName << " set to " << vm[itemName].as<double>() << " \n";
         return vm[itemName].as<double>();
     }
-    cout << itemName << " set default " << defaultVal << " .\n";
+    cout << itemName << " is default " << defaultVal << " .\n";
     return defaultVal;
 }
 // read commands
-static int inputVariables(int ac, char** av)
+static int inputVariables(int ac, char** av, Settings& outSettings)
 {
     using std::cerr;
     using std::cout;
@@ -49,7 +64,7 @@ static int inputVariables(int ac, char** av)
         
         po::options_description desc("Allowed options");
         desc.add_options()
-        ("help", "produce help message")
+        ("help", "This program calculates the metric underneath an array of spinning atoms, assuming that each atom is some kind of spinning Kerr like system")
         ("lattice", po::value<double>(), "atomic lattice spacing, nanometers")
         ("xi", po::value<double>(), "x distance from crystal face, nanometers")
         ("yi", po::value<double>(), "y distance from crystal face, nanometers")
@@ -68,15 +83,14 @@ static int inputVariables(int ac, char** av)
             return 0;
         }
         
-        double lattice = readItem(vm, "lattice", 2.0);
-        double xi = readItem(vm, "xi", 0.0);
-        double yi = readItem(vm, "yi", 0.0);
-        double zi = readItem(vm, "zi", 40.0);
-        double ahbar = readItem(vm, "ahbar", 0.5);
-        long nX = readItem(vm, "nX", 100);
-        long nY = readItem(vm, "nY", 100);
-        long nZ = readItem(vm, "nZ", 20);
-
+        outSettings.lattice = readItem(vm, "lattice", 2.0);
+        outSettings.xi = readItem(vm, "xi", 0.0);
+        outSettings.yi = readItem(vm, "yi", 0.0);
+        outSettings.zi = readItem(vm, "zi", 40.0);
+        outSettings.ahbar = readItem(vm, "ahbar", 0.5);
+        outSettings.nX = readItem(vm, "nX", 100);
+        outSettings.nY = readItem(vm, "nY", 100);
+        outSettings.nZ = readItem(vm, "nZ", 20);
     }
     catch(exception& e) {
         cerr << "error: " << e.what() << "\n";
@@ -92,8 +106,9 @@ static int inputVariables(int ac, char** av)
 int main(int ac, char** av)
 {
     using namespace boost::lambda;
+    Settings settings;
+    inputVariables(ac, av, settings);
     
-    inputVariables(ac, av);
     
     
 //    typedef std::istream_iterator<double> in;
