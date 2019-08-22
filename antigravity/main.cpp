@@ -22,6 +22,12 @@
 #include <algorithm>
 #include <boost/program_options.hpp>
 #include <exception>
+#include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/io.hpp>
+#include <boost/numeric/ublas/tensor.hpp>
+
+using namespace boost::numeric::ublas;
+
 
 namespace po = boost::program_options;
 // Make struct/class for settings
@@ -103,15 +109,43 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
     return 0;
 }
 
+// Section on Kerr metric calculations:
+
+
+
+// Following  notation,
+// Matt Visser: The Kerr spacetime: A brief introduction
 int main(int ac, char** av)
 {
     using namespace boost::lambda;
+    using std::cout;
     Settings settings;
     inputVariables(ac, av, settings);
+    tensor<double> metric{4,4}; // see https://www.boost.org/doc/libs/1_70_0/libs/numeric/ublas/doc/tensor.html#tensor_1
     
-    
-    
-//    typedef std::istream_iterator<double> in;
+    // initialize the tensor as per equation 43 with only the flat metric
+    // I assume linearized metric. The expression for each atom in the lattice is exact,
+    // but the field is weak at the measure point, xi, yi, zi
+    // so we can add the second halfs linearly it seems
+    // the Minkowski metric has signature - + + +
+    metric.at(0,0) = -1.0;
+    metric.at(1,1) = 1.0;
+    metric.at(2,2) = 1.0;
+    metric.at(3,3) = 1.0;
+    cout << "Metric is initally\n" << metric << std::endl;
+
+    // https://github.com/BoostGSoC18/tensor/wiki/Documentation
+    vector<double> L (4);
+
+    //vector<double> L{4}; // see https://www.boost.org/doc/libs/1_70_0/libs/numeric/ublas/doc/tensor.html#tensor_1
+    L[0] = -1;
+    L[1] = 1;
+    L[2] = 4;
+    L[3] = 6;
+
+    auto Z = outer_prod(L,L);
+    cout << "Metric add is\n" << Z << std::endl;
+    //    typedef std::istream_iterator<double> in;
 //
 //    std::for_each(in(std::cin), in(),
 //        std::cout << "*3\n----\n"  << (_1 * 3) << "\n\n"
