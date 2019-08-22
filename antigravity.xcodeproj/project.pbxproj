@@ -253,6 +253,7 @@
 					"/usr/local/opt/icu4c/lib/**",
 					"/usr/local/Cellar/boost/1.70.0/lib/**",
 				);
+				OTHER_LDFLAGS = "-lboost_program_options";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -272,6 +273,7 @@
 					"/usr/local/opt/icu4c/lib/**",
 					"/usr/local/Cellar/boost/1.70.0/lib/**",
 				);
+				OTHER_LDFLAGS = "-lboost_program_options";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
