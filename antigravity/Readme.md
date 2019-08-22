@@ -110,3 +110,41 @@ Final Metric pertubation is now is
 01234567890123456789
 0.00000000000000010515445489757326
 
+
+Try close to surface...
+--------
+lattice is default 0.1 .
+ix is default 0 .
+iy is default 1e-06 .
+iz is default 0 .
+ahbar is default 0.5 .
+nX is default 1000 .
+nY is default 10 .
+nZ is default 1000 .
+
+
+Final Metric pertubation is now is
+[ ... 
+3.36681e-39 2.63075e-40 2.51632e-39 3.90186e-43 ; 
+2.63075e-40 4.58517e-40 2.61231e-40 1.75647e-46 ; 
+2.51632e-39 2.61231e-40 2.4774e-39 3.16121e-45 ; 
+3.90186e-43 1.75647e-46 3.16121e-45 4.30894e-40 ]
+Program ended with exit code: 0
+
+lattice is default 0.1 .
+ix is default 0 .
+iy is default 1e-06 .
+iz is default 0 .
+ahbar is default 0 .
+nX is default 1000 .
+nY is default 10 .
+nZ is default 1000 .
+
+
+Final Metric pertubation is now is
+[ ... 
+3.35297e-39 3.90186e-43 2.51632e-39 3.90186e-43 ; 
+3.90186e-43 4.30894e-40 3.16121e-45 1.75647e-46 ; 
+2.51632e-39 3.16121e-45 2.49118e-39 3.16121e-45 ; 
+3.90186e-43 1.75647e-46 3.16121e-45 4.30894e-40 ]
+Program ended with exit code: 0

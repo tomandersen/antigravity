@@ -106,12 +106,12 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
         
         outSettings.lattice = readItem(vm, "lattice", 0.1);
         outSettings.ix = readItem(vm, "ix", 0.0);
-        outSettings.iy = readItem(vm, "iy", 1.0);
-        outSettings.iz = readItem(vm, "iz", 0);
+        outSettings.iy = readItem(vm, "iy", 0.01);
+        outSettings.iz = readItem(vm, "iz", 0.0);
         outSettings.ahbar = readItem(vm, "ahbar", 0.5);
-        outSettings.nX = readItem(vm, "nX", 1000);
+        outSettings.nX = readItem(vm, "nX", 100);
         outSettings.nY = readItem(vm, "nY", 10);
-        outSettings.nZ = readItem(vm, "nZ", 1000);
+        outSettings.nZ = readItem(vm, "nZ", 100);
     }
     catch(exception& e) {
         cerr << "error: " << e.what() << "\n";
@@ -137,11 +137,18 @@ int main(int ac, char** av)
     Settings settings;
     inputVariables(ac, av, settings);
     
-    tensor<double> metric = calcMetric(settings);
+    tensor<double> metricPertubations = calcMetric(settings);
+    cout << "\n\nFinal Metric pertubation is\n" << metricPertubations << std::endl;
 
+    // now do it without spin:
+    settings.ahbar = 0.0;
+    tensor<double> metricPertubationsNoSpin = calcMetric(settings);
+    cout << "\n\n No Spin Metric pertubation is \n" << metricPertubationsNoSpin << std::endl;
+    tensor<double> diff = (metricPertubations - metricPertubationsNoSpin)/metricPertubationsNoSpin;
+    cout << "\n\n Diff in Metric pertubation is \n" << diff << std::endl;
 }
 
-// Metric calculation:
+// Metric calculation: returns metric pertubation...
 static tensor<double> calcMetric(const Settings& settings) {
     tensor<double> metricPertubation{4,4}; // all zeros
     // run loop
@@ -172,11 +179,10 @@ static tensor<double> calcMetric(const Settings& settings) {
             }
         }
     }
-    tensor<double> minkowski = minkowskiMetric();
-    cout << "\n\nFinal Metric pertubation is now is\n" << metricPertubation << std::endl;
-    tensor<double> metric = minkowski + metricPertubation;
+//    tensor<double> minkowski = minkowskiMetric();
+//    tensor<double> metric = minkowski + metricPertubation;
     
-    return metric;
+    return metricPertubation;
 }
 
 
