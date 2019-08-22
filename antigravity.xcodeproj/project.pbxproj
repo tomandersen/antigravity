@@ -26,6 +26,7 @@
 		6D4230A7230DBD24003A837A /* antigravity */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = antigravity; sourceTree = BUILT_PRODUCTS_DIR; };
 		6D4230AA230DBD24003A837A /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		6D4230B1230DC593003A837A /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		6DAF14F5230F0A9A00615D05 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,6 +61,7 @@
 			isa = PBXGroup;
 			children = (
 				6D4230AA230DBD24003A837A /* main.cpp */,
+				6DAF14F5230F0A9A00615D05 /* Readme.md */,
 			);
 			path = antigravity;
 			sourceTree = "<group>";
