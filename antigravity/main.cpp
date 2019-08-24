@@ -59,9 +59,12 @@ class Settings
 // make functions to evaluate Kerr metric at given x, y, z
 static void playWithTensor(void);
 static tensor<double> calcMetric(const Settings& settings);
+static void calcNewtonianGravity(const Settings& settings);
 static tensor<double> minkowskiMetric(void);
 static void addMetricContribution(tensor<double>& metric, double x, double y, double z, double a, double mass);
 static double calcLittleR(double aX, double aY, double aZ, double as);
+static tensor<double> calcDifferentialMetric(const Settings& settings, double delX, double delY, double delZ);
+static vector<double> calculateForceMagnitude(const Settings& settings);
 
 // util to read an item
 static double readItem(po::variables_map &vm, const char* itemName, double defaultVal)
@@ -106,11 +109,11 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
         
         outSettings.lattice = readItem(vm, "lattice", 0.1);
         outSettings.ix = readItem(vm, "ix", 0.0);
-        outSettings.iy = readItem(vm, "iy", 0.01);
+        outSettings.iy = readItem(vm, "iy", 10);
         outSettings.iz = readItem(vm, "iz", 0.0);
         outSettings.ahbar = readItem(vm, "ahbar", 0.5);
         outSettings.nX = readItem(vm, "nX", 100);
-        outSettings.nY = readItem(vm, "nY", 10);
+        outSettings.nY = readItem(vm, "nY", 100);
         outSettings.nZ = readItem(vm, "nZ", 100);
     }
     catch(exception& e) {
@@ -146,6 +149,9 @@ int main(int ac, char** av)
     cout << "\n\n No Spin Metric pertubation is \n" << metricPertubationsNoSpin << std::endl;
     tensor<double> diff = (metricPertubations - metricPertubationsNoSpin)/metricPertubationsNoSpin;
     cout << "\n\n Diff in Metric pertubation is \n" << diff << std::endl;
+    
+    // as a test, etc.
+    calcNewtonianGravity(settings);
 }
 
 // Metric calculation: returns metric pertubation...
@@ -164,9 +170,9 @@ static tensor<double> calcMetric(const Settings& settings) {
 
     for (long ny = 0; ny < settings.nY; ny++){
         double aY = -lattice*ny; // aY === 'atom Y' - position of atom
-        for (long nx = -halfNX; nx < halfNX; nx++){
+        for (long nx = -halfNX; nx <= halfNX; nx++){
             double aX = lattice*nx;
-            for (long nz = -halfNZ; nz < halfNZ; nz++){
+            for (long nz = -halfNZ; nz <= halfNZ; nz++){
                 double aZ = lattice*nz;
                 
                 // net location is described in coordinates using the atom as the base, so we are at:
@@ -257,6 +263,95 @@ static double calcLittleR(double netX, double netY, double netZ, double as)
     double smallRoot = sqrt(rSQMaSQ*rSQMaSQ + 4*as*as*netZ*netZ);
     double r = sqrt((rSQMaSQ + smallRoot)/2.0);
     return r;
+}
+
+static void calcNewtonianGravity(const Settings& settings)
+{
+    // we want to get the gravity
+    // Equation 11 Visser:
+    // -2phi = h_00
+    // And Equation 15:
+    // g is the gradient of phi + the time derivative of the first column, w, since our source is static, that second part is zero
+    // so we need to get some gradients:
+    // use the lattice spacing to come up with a step to do the first derivative around.
+    double del = settings.lattice*kMeterPerNM*0.1;
+    tensor<double> differentialX = calcDifferentialMetric(settings, del, 0, 0);
+    //cout << "Metric diffX is:\n" << differentialX << std::endl;
+    cout << "\ng in X direction is -DelPhi, so -h_00/2: " << kc*kc*differentialX.at(0,0)/2.0;
+    
+    tensor<double> differentialY = calcDifferentialMetric(settings, 0, del, 0);
+    //cout << "Metric diffY is:\n" << differentialY << std::endl;
+    cout << "\ng in Y direction is -DelPhi, so -h_00/2: " << kc*kc*differentialY.at(0,0)/2.0;
+    
+    tensor<double> differentialZ = calcDifferentialMetric(settings, 0, 0, del);
+    //cout << "Metric diffZ is:\n" << differentialZ << std::endl;
+    cout << "\ng in Z direction is -DelPhi, so -h_00/2: " << kc*kc*differentialZ.at(0,0)/2.0;
+    
+    // now do the classical newton gravity calculation:
+    vector<double> grav = calculateForceMagnitude(settings);
+    cout << "\ngrav is " << grav << "\n\n";
+}
+
+static vector<double> calculateForceMagnitude(const Settings& settings){
+    long halfNX = settings.nX/2;
+    long halfNZ = settings.nZ/2;
+    double lattice = settings.lattice*kMeterPerNM;
+    
+    // calculate a in dimensionless units based on real units.
+    double mass = km_p; // perhaps a setting
+    double fieldX = 0;
+    double fieldY = 0;
+    double fieldZ = 0;
+
+    for (long ny = 0; ny < settings.nY; ny++){
+        double aY = -lattice*ny; // aY === 'atom Y' - position of atom
+        for (long nx = -halfNX; nx <= halfNX; nx++){
+            double aX = lattice*nx;
+            for (long nz = -halfNZ; nz <= halfNZ; nz++){
+                double aZ = lattice*nz;
+                
+                // net location is described in coordinates using the atom as the base, so we are at:
+                double netX = settings.ix*kMeterPerNM - aX;
+                double netY = settings.iy*kMeterPerNM - aY;
+                double netZ = settings.iz*kMeterPerNM - aZ;
+                double distSq = netX*netX + netY*netY + netZ*netZ;
+                double dist = sqrt(distSq);
+
+                fieldX += netX/dist*kBigG*mass/(distSq);
+                fieldY += netY/dist*kBigG*mass/(distSq);
+                fieldZ += netZ/dist*kBigG*mass/(distSq);
+            }
+        }
+    }
+    
+    double totalNumParticles = settings.nX*settings.nY*settings.nZ;
+    double totalMass = mass*totalNumParticles;
+    double approxDistance = sqrt(settings.ix*kMeterPerNM*settings.ix*kMeterPerNM + settings.iy*kMeterPerNM*settings.iy*kMeterPerNM + settings.iz*kMeterPerNM*settings.iz*kMeterPerNM);
+    approxDistance += lattice*settings.nY/2.0;
+    double sillyApprox = kBigG*totalMass/(approxDistance*approxDistance);
+    cout << "\nApprox is: " << sillyApprox << "\n";
+    
+    vector<double> grav (3);
+    grav[0] = fieldX;
+    grav[1] = fieldY;
+    grav[2] = fieldZ;
+    return grav;
+}
+
+static tensor<double> calcDifferentialMetric(const Settings& settings, double delX, double delY, double delZ) {
+    Settings settingsPlus = settings;
+    settingsPlus.ix += delX;
+    settingsPlus.iy += delY;
+    settingsPlus.iz += delZ;
+    tensor<double> metricPlus = calcMetric(settingsPlus);
+    Settings settingsMinus = settings;
+    settingsPlus.ix -= delX;
+    settingsPlus.iy -= delY;
+    settingsPlus.iz -= delZ;
+    tensor<double> metricMinus = calcMetric(settingsMinus);
+    
+    tensor<double> differential = (metricPlus - metricMinus)/(2.0*sqrt(delX*delX + delY*delY + delZ*delZ));
+    return differential;
 }
 
 
