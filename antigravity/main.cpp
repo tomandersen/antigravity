@@ -109,11 +109,11 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
         
         outSettings.lattice = readItem(vm, "lattice", 0.1);
         outSettings.ix = readItem(vm, "ix", 0.0);
-        outSettings.iy = readItem(vm, "iy", 1.0);
+        outSettings.iy = readItem(vm, "iy", 0.1);
         outSettings.iz = readItem(vm, "iz", 0.0);
         outSettings.ahbar = readItem(vm, "ahbar", 0.5);
         outSettings.nX = readItem(vm, "nX", 100);
-        outSettings.nY = readItem(vm, "nY", 10);
+        outSettings.nY = readItem(vm, "nY", 1);
         outSettings.nZ = readItem(vm, "nZ", 100);
     }
     catch(exception& e) {
@@ -279,7 +279,7 @@ static void calcNewtonianGravity(const Settings& settings)
     // g is the gradient of phi + the time derivative of the first column, w, since our source is static, that second part is zero
     // so we need to get some gradients:
     // use the lattice spacing to come up with a step to do the first derivative around.
-    double del = settings.lattice*kMeterPerNM*0.0001;
+    double del = settings.lattice*kMeterPerNM*0.1;
     tensor<double> differentialX = calcDifferentialMetric(settings, del, 0, 0);
     //cout << "Metric diffX is:\n" << differentialX << std::endl;
     cout << "\ng in X direction is -DelPhi, so -h_00/2: " << differentialX.at(0,0)/2.0;
