@@ -207,14 +207,14 @@ static void addMetricContribution(tensor<double>& metric, double x, double y, do
     double r2 = r*r;
     double z2 = z*z;
     double a2 = a*a;
-    double factor = 2.0*kBigG*mass*r2*r/(r2*r2 + a2*z2);
+    double factor = 2.0*kBigG*mass*r2*r/(kc*kc)/(r2*r2 + a2*z2);
     //cout << "\nfactor is " << factor;
     //double derivative = kBigG*mass*(1/(r + 0.001*r) - 1/(r - 0.001*r))/(0.002*r);
     //cout << "\nderivative is " << derivative;
    //cout << "\nfactor field is " << factor/(2.0*r);
 
     // calc little ls equation 44
-    double l0 = 1.0;
+    double l0 = kc;
     double l1 = (r*x + a*y)/(r2 + a2);
     double l2 = (r*y - a*x)/(r2 + a2);
     double l3 = (z/r);
