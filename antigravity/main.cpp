@@ -109,15 +109,15 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
             return 0;
         }
         
-        outSettings.lattice = readItem(vm, "lattice", 1e-10);
+        outSettings.lattice = readItem(vm, "lattice", 1000);
         outSettings.ix = readItem(vm, "ix", 0.0);
-        outSettings.iy = readItem(vm, "iy", 1e-10);
+        outSettings.iy = readItem(vm, "iy", 6.371e6);
         outSettings.iz = readItem(vm, "iz", 0.0);
-        outSettings.angularMomentum = readItem(vm, "angularMomentum", khbar);
-        outSettings.mass = readItem(vm, "mass", km_p);
-        outSettings.nX = readItem(vm, "nX", 100);
-        outSettings.nY = readItem(vm, "nY", 10);
-        outSettings.nZ = readItem(vm, "nZ", 100);
+        outSettings.angularMomentum = readItem(vm, "angularMomentum", 7.07e33);
+        outSettings.mass = readItem(vm, "mass", 5.972e24); // km_p proton // 5.972 × 10^24 kg for earth
+        outSettings.nX = readItem(vm, "nX", 1);
+        outSettings.nY = readItem(vm, "nY", 1);
+        outSettings.nZ = readItem(vm, "nZ", 1);
     }
     catch(exception& e) {
         cerr << "error: " << e.what() << "\n";
