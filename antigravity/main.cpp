@@ -60,12 +60,12 @@ class Settings
 // make functions to evaluate Kerr metric at given x, y, z
 static void playWithTensor(void);
 static tensor<double> calcMetric(const Settings& settings);
-static void calcNewtonianGravity(const Settings& settings);
+static void calcGravityForceBertschinger(const Settings& settings);
 static tensor<double> minkowskiMetric(void);
 static void addMetricContribution(tensor<double>& metric, double x, double y, double z, double a, double mass);
 static double calcLittleR(double aX, double aY, double aZ, double as);
 static tensor<double> calcDifferentialMetric(const Settings& settings, double delX, double delY, double delZ);
-static vector<double> calculateForceMagnitude(const Settings& settings);
+static vector<double> calculateNewtonianGravity(const Settings& settings);
 
 // util to read an item
 static double readItem(po::variables_map &vm, const char* itemName, double defaultVal)
@@ -109,12 +109,12 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
             return 0;
         }
         
-        outSettings.lattice = readItem(vm, "lattice", 1000);
+        outSettings.lattice = readItem(vm, "lattice", 1e-10);
         outSettings.ix = readItem(vm, "ix", 0.0);
-        outSettings.iy = readItem(vm, "iy", 6.371e6);
+        outSettings.iy = readItem(vm, "iy", 1e-12);
         outSettings.iz = readItem(vm, "iz", 0.0);
-        outSettings.angularMomentum = readItem(vm, "angularMomentum", 7.07e33);
-        outSettings.mass = readItem(vm, "mass", 5.972e24); // km_p proton // 5.972 × 10^24 kg for earth
+        outSettings.angularMomentum = readItem(vm, "angularMomentum", khbar); // Earth is 7.07e33
+        outSettings.mass = readItem(vm, "mass", km_p); // km_p proton // 5.972 × 10^24 kg for earth
         outSettings.nX = readItem(vm, "nX", 1);
         outSettings.nY = readItem(vm, "nY", 1);
         outSettings.nZ = readItem(vm, "nZ", 1);
@@ -154,7 +154,12 @@ int main(int ac, char** av)
     cout << "\n\n Diff in Metric pertubation is \n" << diff << std::endl;
     
     // as a test, etc.
-    calcNewtonianGravity(settings);
+    calcGravityForceBertschinger(settings);
+    
+    // now do the classical newton gravity calculation:
+    vector<double> grav = calculateNewtonianGravity(settings);
+    cout << "\ngrav is " << grav << "\n\n";
+
 }
 
 // Metric calculation: returns metric pertubation...
@@ -198,7 +203,7 @@ static tensor<double> calcMetric(const Settings& settings) {
 
 
 
-
+// a has units of metres, mass in kg, the is SI
 static void addMetricContribution(tensor<double>& metric, double x, double y, double z, double a, double mass)
 {
     // calculate all the metric add ons from a Kerr solution located at aX, aY, aZ, at point xi, yi, zi
@@ -211,9 +216,19 @@ static void addMetricContribution(tensor<double>& metric, double x, double y, do
     //cout << "\nfactor is " << factor;
     //double derivative = kBigG*mass*(1/(r + 0.001*r) - 1/(r - 0.001*r))/(0.002*r);
     //cout << "\nderivative is " << derivative;
-   //cout << "\nfactor field is " << factor/(2.0*r);
+   //cout << "\nfactor field is " << factor/(2.0*r);. 
+    
+    // A note on units and including 'c' in the metric
+    // I include c in the metric so that calculations like getting g from
+    // Gravitation in the weak-field limit
+    // equation 15 Bertschinger, Edmund 2000
+    // works directly. In other words the units on the metric are as follows:
+    // h_00 -- m^2/t^2 (so Del h_00 is the grav force in m/s^2)
+    // h_i0, h_0i m/s - so that v cross curl w is a force m/s^2 (i = 1, 2, 3)
+    // h_ij are unitless, so that equation 15 second term has m/s^2 after all the velocity multiplying and derivatives
+    
 
-    // calc little ls equation 44
+    // calc little ls equation 44 VISSER, with c added in for the oth component.
     double l0 = kc;
     double l1 = (r*x + a*y)/(r2 + a2);
     double l2 = (r*y - a*x)/(r2 + a2);
@@ -274,7 +289,7 @@ static double calcLittleR(double netX, double netY, double netZ, double as)
     return r;
 }
 
-static void calcNewtonianGravity(const Settings& settings)
+static void calcGravityForceBertschinger(const Settings& settings)
 {
     // we want to get the gravity
     // Equation 11 Visser:
@@ -296,13 +311,9 @@ static void calcNewtonianGravity(const Settings& settings)
     tensor<double> differentialZ = calcDifferentialMetric(settings, 0, 0, del);
     //cout << "Metric diffZ is:\n" << differentialZ << std::endl;
     cout << "\ng in Z direction is -DelPhi, so -h_00/2: " << differentialZ.at(0,0)/2.0;
-    
-    // now do the classical newton gravity calculation:
-    vector<double> grav = calculateForceMagnitude(settings);
-    cout << "\ngrav is " << grav << "\n\n";
 }
 
-static vector<double> calculateForceMagnitude(const Settings& settings){
+static vector<double> calculateNewtonianGravity(const Settings& settings){
     long halfNX = settings.nX/2;
     long halfNZ = settings.nZ/2;
     double lattice = settings.lattice;
