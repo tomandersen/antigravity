@@ -27,6 +27,7 @@
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/tensor.hpp>
 
+
 using namespace boost::numeric::ublas;
 using std::cout;
 
@@ -60,12 +61,13 @@ class Settings
 // make functions to evaluate Kerr metric at given x, y, z
 static void playWithTensor(void);
 static tensor<double> calcMetric(const Settings& settings);
-static void calcGravityForceBertschinger(const Settings& settings);
+static vector<double> calcGravityForceBertschinger(const Settings& settings);
 static tensor<double> minkowskiMetric(void);
 static void addMetricContribution(tensor<double>& metric, double x, double y, double z, double a, double mass);
 static double calcLittleR(double aX, double aY, double aZ, double as);
 static tensor<double> calcDifferentialMetric(const Settings& settings, double delX, double delY, double delZ);
 static vector<double> calculateNewtonianGravity(const Settings& settings);
+static vector<double> crossProd3d(vector<double> a, vector<double> b);
 
 // util to read an item
 static double readItem(po::variables_map &vm, const char* itemName, double defaultVal)
@@ -111,7 +113,7 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
         
         outSettings.lattice = readItem(vm, "lattice", 1e-10);
         outSettings.ix = readItem(vm, "ix", 0.0);
-        outSettings.iy = readItem(vm, "iy", 1e-12);
+        outSettings.iy = readItem(vm, "iy", 1e-10);
         outSettings.iz = readItem(vm, "iz", 0.0);
         outSettings.angularMomentum = readItem(vm, "angularMomentum", khbar); // Earth is 7.07e33
         outSettings.mass = readItem(vm, "mass", km_p); // km_p proton // 5.972 × 10^24 kg for earth
@@ -154,8 +156,14 @@ int main(int ac, char** av)
     cout << "\n\n Diff in Metric pertubation is \n" << diff << std::endl;
     
     // as a test, etc.
-    calcGravityForceBertschinger(settings);
-    
+    vector<double> hField = calcGravityForceBertschinger(settings);
+    cout << "\nhField is " << hField << "\n\n";
+    vector<double> velocity (3);
+    velocity[0] = 1.0;
+    velocity[1] = 0.0;
+    velocity[2] = 0.0;
+    vector<double> gravimagneticForce = crossProd3d(velocity, hField);
+    cout << "\ngravimagneticForce is " << gravimagneticForce << "\n\n";
     // now do the classical newton gravity calculation:
     vector<double> grav = calculateNewtonianGravity(settings);
     cout << "\ngrav is " << grav << "\n\n";
@@ -201,6 +209,15 @@ static tensor<double> calcMetric(const Settings& settings) {
     return metricPertubation;
 }
 
+static vector<double> crossProd3d(vector<double> a, vector<double> b)
+{
+ //A x B = (a2b3  -   a3b2,     a3b1   -   a1b3,     a1b2   -   a2b1)
+    vector<double> out(3);
+    out[0] = a[1]*b[2] - a[2]*b[1];
+    out[1] = a[2]*b[0] - a[0]*b[2];
+    out[2] = a[0]*b[1] - a[1]*b[0];
+    return out;
+}
 
 
 // a has units of metres, mass in kg, the is SI
@@ -289,7 +306,40 @@ static double calcLittleR(double netX, double netY, double netZ, double as)
     return r;
 }
 
-static void calcGravityForceBertschinger(const Settings& settings)
+static vector<double> calcGravityForceBertschinger(const Settings& settings)
+{
+    // we want to get the gravity
+    // Equation 11 Visser:
+    // -2phi = h_00
+    // And Equation 15:
+    // g is the gradient of phi + the time derivative of the first column, w, since our source is static, that second part is zero
+    // so we need to get some gradients:
+    // use the lattice spacing to come up with a step to do the first derivative around.
+    double del = settings.lattice*0.001;
+    tensor<double> differentialX = calcDifferentialMetric(settings, del, 0, 0);
+    cout << "Metric diffX is:\n" << differentialX << std::endl;
+    // Note on signs: h_00 is minus 2 Phi (eqn 11 Visser), and grav field is minus del Phi, so final sign is positive
+    cout << "\ng in X direction is -DelPhi, so -h_00/2: " << differentialX.at(0,0)/2.0;
+    
+    tensor<double> differentialY = calcDifferentialMetric(settings, 0, del, 0);
+    cout << "\nMetric diffY is:\n" << differentialY << std::endl;
+    cout << "\ng in Y direction is -DelPhi, so -h_00/2: " << differentialY.at(0,0)/2.0;///8.394046e-10;
+    
+    tensor<double> differentialZ = calcDifferentialMetric(settings, 0, 0, del);
+    cout << "Metric diffZ is:\n" << differentialZ << std::endl;
+    cout << "\ng in Z direction is -DelPhi, so -h_00/2: " << differentialZ.at(0,0)/2.0;
+    
+    double xComp = differentialY.at(0,3) - differentialZ.at(0,2);
+    double yComp = differentialZ.at(0,1) - differentialX.at(0,3);
+    double zComp = differentialX.at(0,2) - differentialY.at(0,1);
+    vector<double> hField (3);
+    hField[0] = xComp;
+    hField[1] = yComp;
+    hField[2] = zComp;
+    return hField;
+}
+
+static void calcCurlBertschinger(const Settings& settings)
 {
     // we want to get the gravity
     // Equation 11 Visser:
@@ -311,7 +361,10 @@ static void calcGravityForceBertschinger(const Settings& settings)
     tensor<double> differentialZ = calcDifferentialMetric(settings, 0, 0, del);
     //cout << "Metric diffZ is:\n" << differentialZ << std::endl;
     cout << "\ng in Z direction is -DelPhi, so -h_00/2: " << differentialZ.at(0,0)/2.0;
+    
 }
+
+
 
 static vector<double> calculateNewtonianGravity(const Settings& settings){
     long halfNX = settings.nX/2;
