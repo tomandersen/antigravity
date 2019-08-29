@@ -158,12 +158,12 @@ int main(int ac, char** av)
     // as a test, etc.
     vector<double> hField = calcGravityForceBertschinger(settings);
     cout << "\nhField is " << hField << "\n\n";
-    vector<double> velocity (3);
-    velocity[0] = 0.4;
-    velocity[1] = 0.4;
-    velocity[2] = 0.4;
+    vector<double> velocity (3); // velocity needs to be in m/s for my way of calculating.
+    velocity[0] = 0.4*kc;
+    velocity[1] = 0.4*kc;
+    velocity[2] = 0.4*kc;
     vector<double> gravimagneticAccel = crossProd3d(velocity, hField);
-    cout << "\gravimagneticAccel is " << gravimagneticAccel << "\n\n";
+    cout << "\n gravimagneticAccel is " << gravimagneticAccel << "\n\n";
     // now do the classical newton gravity calculation:
     vector<double> grav = calculateNewtonianGravity(settings);
     cout << "\ngrav is " << grav << "\n\n";
@@ -332,36 +332,11 @@ static vector<double> calcGravityForceBertschinger(const Settings& settings)
     double xComp = differentialY.at(0,3) - differentialZ.at(0,2);
     double yComp = differentialZ.at(0,1) - differentialX.at(0,3);
     double zComp = differentialX.at(0,2) - differentialY.at(0,1);
-    vector<double> hField (3); // https://en.wikipedia.org/wiki/Gravitoelectromagnetism gives 1.012×10−14 Hz for
+    vector<double> hField (3); // https://en.wikipedia.org/wiki/Gravitoelectromagnetism gives 1.012×10−14 Hz I am a factor of 4 more. That's oK. I'm using Bertschinger. https://en.wikipedia.org/wiki/Talk:Gravitoelectromagnetism
     hField[0] = xComp;
     hField[1] = yComp;
     hField[2] = zComp;
     return hField;
-}
-
-static void calcCurlBertschinger(const Settings& settings)
-{
-    // we want to get the gravity
-    // Equation 11 Visser:
-    // -2phi = h_00
-    // And Equation 15:
-    // g is the gradient of phi + the time derivative of the first column, w, since our source is static, that second part is zero
-    // so we need to get some gradients:
-    // use the lattice spacing to come up with a step to do the first derivative around.
-    double del = settings.lattice*0.001;
-    tensor<double> differentialX = calcDifferentialMetric(settings, del, 0, 0);
-    //cout << "Metric diffX is:\n" << differentialX << std::endl;
-    // Note on signs: h_00 is minus 2 Phi (eqn 11 Visser), and grav field is minus del Phi, so final sign is positive
-    cout << "\ng in X direction is -DelPhi, so -h_00/2: " << differentialX.at(0,0)/2.0;
-    
-    tensor<double> differentialY = calcDifferentialMetric(settings, 0, del, 0);
-    //cout << "\nMetric diffY is:\n" << differentialY << std::endl;
-    cout << "\ng in Y direction is -DelPhi, so -h_00/2: " << differentialY.at(0,0)/2.0;///8.394046e-10;
-    
-    tensor<double> differentialZ = calcDifferentialMetric(settings, 0, 0, del);
-    //cout << "Metric diffZ is:\n" << differentialZ << std::endl;
-    cout << "\ng in Z direction is -DelPhi, so -h_00/2: " << differentialZ.at(0,0)/2.0;
-    
 }
 
 
