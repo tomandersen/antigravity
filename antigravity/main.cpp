@@ -111,12 +111,12 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
             return 0;
         }
         
-        outSettings.lattice = readItem(vm, "lattice", 1000); // 1e-10 for atomic lattice, 1000 for earth
+        outSettings.lattice = readItem(vm, "lattice", 1e-10); // 1e-10 for atomic lattice, 1000 for earth
         outSettings.ix = readItem(vm, "ix", 0);
-        outSettings.iy = readItem(vm, "iy", 6378000); // 1e-10 or near there for atomic lattice, 6378000 for earth
-        outSettings.iz = readItem(vm, "iz", 0);
-        outSettings.angularMomentum = readItem(vm, "angularMomentum", 7.07e33); //khbar Earth is 7.07e33
-        outSettings.mass = readItem(vm, "mass", 5.972e24); // km_p proton // 5.972 × 10^24 kg for earth
+        outSettings.iy = readItem(vm, "iy", 2.4e-16); // 1e-10 or near there for atomic lattice, 6378000 for earth
+        outSettings.iz = readItem(vm, "iz", 2.4e-16);
+        outSettings.angularMomentum = readItem(vm, "angularMomentum", khbar); // proton is khbar Earth is 7.07e33
+        outSettings.mass = readItem(vm, "mass", km_p); // km_p proton // 5.972e24  kg for earth
         outSettings.nX = readItem(vm, "nX", 1);
         outSettings.nY = readItem(vm, "nY", 1);
         outSettings.nZ = readItem(vm, "nZ", 1);
@@ -315,18 +315,18 @@ static vector<double> calcGravityForceBertschinger(const Settings& settings)
     // g is the gradient of phi + the time derivative of the first column, w, since our source is static, that second part is zero
     // so we need to get some gradients:
     // use the lattice spacing to come up with a step to do the first derivative around.
-    double del = settings.lattice*0.001;
+    double del = fmin(settings.lattice*0.001, sqrt(settings.ix*settings.ix + settings.iy*settings.iy + settings.iz*settings.iz)*0.002);
     tensor<double> differentialX = calcDifferentialMetric(settings, del, 0, 0);
-    cout << "Metric diffX is:\n" << differentialX << std::endl;
+    //cout << "Metric diffX is:\n" << differentialX << std::endl;
     // Note on signs: h_00 is minus 2 Phi (eqn 11 Visser), and grav field is minus del Phi, so final sign is positive
     cout << "\ng in X direction is -DelPhi, so -h_00/2: " << differentialX.at(0,0)/2.0;
     
     tensor<double> differentialY = calcDifferentialMetric(settings, 0, del, 0);
-    cout << "\nMetric diffY is:\n" << differentialY << std::endl;
+    //cout << "\nMetric diffY is:\n" << differentialY << std::endl;
     cout << "\ng in Y direction is -DelPhi, so -h_00/2: " << differentialY.at(0,0)/2.0;///8.394046e-10;
     
     tensor<double> differentialZ = calcDifferentialMetric(settings, 0, 0, del);
-    cout << "\nMetric diffZ is:\n" << differentialZ << std::endl;
+    //cout << "\nMetric diffZ is:\n" << differentialZ << std::endl;
     cout << "\ng in Z direction is -DelPhi, so -h_00/2: " << differentialZ.at(0,0)/2.0;
     
     double xComp = differentialY.at(0,3) - differentialZ.at(0,2);
