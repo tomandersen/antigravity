@@ -111,12 +111,12 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
             return 0;
         }
         
-        outSettings.lattice = readItem(vm, "lattice", 1e-10);
-        outSettings.ix = readItem(vm, "ix", 0.0);
-        outSettings.iy = readItem(vm, "iy", 1e-10);
-        outSettings.iz = readItem(vm, "iz", 0.0);
-        outSettings.angularMomentum = readItem(vm, "angularMomentum", khbar); // Earth is 7.07e33
-        outSettings.mass = readItem(vm, "mass", km_p); // km_p proton // 5.972 × 10^24 kg for earth
+        outSettings.lattice = readItem(vm, "lattice", 1000); // 1e-10 for atomic lattice, 1000 for earth
+        outSettings.ix = readItem(vm, "ix", 0);
+        outSettings.iy = readItem(vm, "iy", 6378000); // 1e-10 or near there for atomic lattice, 6378000 for earth
+        outSettings.iz = readItem(vm, "iz", 0);
+        outSettings.angularMomentum = readItem(vm, "angularMomentum", 7.07e33); //khbar Earth is 7.07e33
+        outSettings.mass = readItem(vm, "mass", 5.972e24); // km_p proton // 5.972 × 10^24 kg for earth
         outSettings.nX = readItem(vm, "nX", 1);
         outSettings.nY = readItem(vm, "nY", 1);
         outSettings.nZ = readItem(vm, "nZ", 1);
@@ -149,21 +149,21 @@ int main(int ac, char** av)
     cout << "\n\nFinal Metric pertubation is\n" << metricPertubations << std::endl;
 
     // now do it without spin:
-    settings.angularMomentum = 0.0;
-    tensor<double> metricPertubationsNoSpin = calcMetric(settings);
-    cout << "\n\n No Spin Metric pertubation is \n" << metricPertubationsNoSpin << std::endl;
-    tensor<double> diff = (metricPertubations - metricPertubationsNoSpin)/metricPertubationsNoSpin;
-    cout << "\n\n Diff in Metric pertubation is \n" << diff << std::endl;
+//    settings.angularMomentum = 0.0;
+//    tensor<double> metricPertubationsNoSpin = calcMetric(settings);
+//    cout << "\n\n No Spin Metric pertubation is \n" << metricPertubationsNoSpin << std::endl;
+//    tensor<double> diff = (metricPertubations - metricPertubationsNoSpin)/metricPertubationsNoSpin;
+//    cout << "\n\n Diff in Metric pertubation is \n" << diff << std::endl;
     
     // as a test, etc.
     vector<double> hField = calcGravityForceBertschinger(settings);
     cout << "\nhField is " << hField << "\n\n";
     vector<double> velocity (3);
-    velocity[0] = 1.0;
-    velocity[1] = 0.0;
-    velocity[2] = 0.0;
-    vector<double> gravimagneticForce = crossProd3d(velocity, hField);
-    cout << "\ngravimagneticForce is " << gravimagneticForce << "\n\n";
+    velocity[0] = 0.4;
+    velocity[1] = 0.4;
+    velocity[2] = 0.4;
+    vector<double> gravimagneticAccel = crossProd3d(velocity, hField);
+    cout << "\gravimagneticAccel is " << gravimagneticAccel << "\n\n";
     // now do the classical newton gravity calculation:
     vector<double> grav = calculateNewtonianGravity(settings);
     cout << "\ngrav is " << grav << "\n\n";
@@ -326,13 +326,13 @@ static vector<double> calcGravityForceBertschinger(const Settings& settings)
     cout << "\ng in Y direction is -DelPhi, so -h_00/2: " << differentialY.at(0,0)/2.0;///8.394046e-10;
     
     tensor<double> differentialZ = calcDifferentialMetric(settings, 0, 0, del);
-    cout << "Metric diffZ is:\n" << differentialZ << std::endl;
+    cout << "\nMetric diffZ is:\n" << differentialZ << std::endl;
     cout << "\ng in Z direction is -DelPhi, so -h_00/2: " << differentialZ.at(0,0)/2.0;
     
     double xComp = differentialY.at(0,3) - differentialZ.at(0,2);
     double yComp = differentialZ.at(0,1) - differentialX.at(0,3);
     double zComp = differentialX.at(0,2) - differentialY.at(0,1);
-    vector<double> hField (3);
+    vector<double> hField (3); // https://en.wikipedia.org/wiki/Gravitoelectromagnetism gives 1.012×10−14 Hz for
     hField[0] = xComp;
     hField[1] = yComp;
     hField[2] = zComp;
