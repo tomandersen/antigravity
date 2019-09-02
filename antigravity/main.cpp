@@ -26,11 +26,11 @@
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/tensor.hpp>
-//#include <boost/multiprecision/float128.hpp>
-//using namespace boost::multiprecision;
 
+// Don't need Boost.Multiprecision as we have 128 bit floating point built in.
+// The Boost.Multiprecision library can be used for computations requiring precision exceeding that of standard built-in types such as float, double and long double.
 typedef long double bigFloat;
-//typedef float128 bigFloat;
+//typedef double bigFloat; // likely way faster and of great use when doing calculations away from the singularity rings, etc.
 
 
 
@@ -148,7 +148,7 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
 // Matt Visser: The Kerr spacetime: A brief introduction
 int main(int ac, char** av)
 {
-    cout << " our floating point type is " << 8*sizeof(bigFloat) << "bits\n";
+    cout << "Our floating point type bigFloat is " << 8*sizeof(bigFloat) << " bits\n";
     
     using namespace boost::lambda;
     using std::cout;
