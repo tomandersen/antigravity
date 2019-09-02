@@ -113,8 +113,8 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
         
         outSettings.lattice = readItem(vm, "lattice", 1e-10); // 1e-10 for atomic lattice, 1000 for earth
         outSettings.ix = readItem(vm, "ix", 0);
-        outSettings.iy = readItem(vm, "iy", 2.4e-16); // 1e-10 or near there for atomic lattice, 6378000 for earth
-        outSettings.iz = readItem(vm, "iz", 2.4e-16);
+        outSettings.iy = readItem(vm, "iy", (1.0 + 2.745256e-11)*khbar/(km_p*kc));//khbar/(km_p*kc)); //); // 1e-10 or near there for atomic lattice, 6378000 for earth
+        outSettings.iz = readItem(vm, "iz", 1e-26);
         outSettings.angularMomentum = readItem(vm, "angularMomentum", khbar); // proton is khbar Earth is 7.07e33
         outSettings.mass = readItem(vm, "mass", km_p); // km_p proton // 5.972e24  kg for earth
         outSettings.nX = readItem(vm, "nX", 1);
@@ -145,6 +145,9 @@ int main(int ac, char** av)
     Settings settings;
     inputVariables(ac, av, settings);
     
+    double a = settings.angularMomentum/(settings.mass*kc);
+    cout << "Ring is at " << a << " metres \n";
+
     tensor<double> metricPertubations = calcMetric(settings);
     cout << "\n\nFinal Metric pertubation is\n" << metricPertubations << std::endl;
 
@@ -159,9 +162,9 @@ int main(int ac, char** av)
     vector<double> hField = calcGravityForceBertschinger(settings);
     cout << "\nhField is " << hField << "\n\n";
     vector<double> velocity (3); // velocity needs to be in m/s for my way of calculating.
-    velocity[0] = 0.4*kc;
-    velocity[1] = 0.4*kc;
-    velocity[2] = 0.4*kc;
+    velocity[0] = 0;
+    velocity[1] = -kc;
+    velocity[2] = 0;
     vector<double> gravimagneticAccel = crossProd3d(velocity, hField);
     cout << "\n gravimagneticAccel is " << gravimagneticAccel << "\n\n";
     // now do the classical newton gravity calculation:
@@ -181,7 +184,7 @@ static tensor<double> calcMetric(const Settings& settings) {
     // calculate a in dimensionless units based on real units.
     double mass = settings.mass; // perhaps a setting
     double a = settings.angularMomentum/(mass*kc); // a is J/Mc https://en.wikipedia.org/wiki/Kerr_metric
-    
+
     double ix = settings.ix;
     double iy = settings.iy;
     double iz = settings.iz;
@@ -230,6 +233,8 @@ static void addMetricContribution(tensor<double>& metric, double x, double y, do
     double z2 = z*z;
     double a2 = a*a;
     double factor = 2.0*kBigG*mass*r2*r/(kc*kc)/(r2*r2 + a2*z2);
+    
+
     //cout << "\nfactor is " << factor;
     //double derivative = kBigG*mass*(1/(r + 0.001*r) - 1/(r - 0.001*r))/(0.002*r);
     //cout << "\nderivative is " << derivative;
@@ -303,6 +308,17 @@ static double calcLittleR(double netX, double netY, double netZ, double as)
     double rSQMaSQ = rSQ - as*as;
     double smallRoot = sqrt(rSQMaSQ*rSQMaSQ + 4*as*as*netZ*netZ);
     double r = sqrt((rSQMaSQ + smallRoot)/2.0);
+    
+    // improve using expansion when in tight
+    double delta = 4*as*as*netZ*netZ/(rSQMaSQ*rSQMaSQ);
+    if (rSQMaSQ < 0.0 && delta < 0.01) {
+        double checkr = sqrt(-4*as*as*netZ*netZ/rSQMaSQ/4.0);
+        //cout << "\ncheck r is " << checkr << " r is " << r << " error is " << (checkr - r)/(checkr + r) << " \n";
+        return checkr;
+    }
+    
+    
+
     return r;
 }
 
@@ -316,6 +332,16 @@ static vector<double> calcGravityForceBertschinger(const Settings& settings)
     // so we need to get some gradients:
     // use the lattice spacing to come up with a step to do the first derivative around.
     double del = fmin(settings.lattice*0.001, sqrt(settings.ix*settings.ix + settings.iy*settings.iy + settings.iz*settings.iz)*0.002);
+    
+    // we need the distance from the r = 0 disc. The closer we are to the disk the smaller step we need to take
+    double a = settings.angularMomentum/(settings.mass*kc); // a is J/Mc https://en.wikipedia.org/wiki/Kerr_metric
+    // This calculates the distance to a ring located at 0,0,0 with us where we are, which is the ring at 0.0.
+    // If you are only working with one ring that's fine. Otherwise you may be near another ring, and we will fail at this point.
+    double r = calcLittleR(settings.ix, settings.iy, settings.iz, a);
+    if (del > 0.00000001*r) {
+        del = 0.00000001*r;
+    }
+    
     tensor<double> differentialX = calcDifferentialMetric(settings, del, 0, 0);
     //cout << "Metric diffX is:\n" << differentialX << std::endl;
     // Note on signs: h_00 is minus 2 Phi (eqn 11 Visser), and grav field is minus del Phi, so final sign is positive
