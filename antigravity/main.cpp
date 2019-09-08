@@ -121,8 +121,9 @@ static int inputVariables(int ac, char** av, Settings& outSettings)
         
         outSettings.lattice = readItem(vm, "lattice", 1e-10); // 1e-10 for atomic lattice, 1000 for earth
         outSettings.ix = readItem(vm, "ix", 0);
-        outSettings.iy = readItem(vm, "iy", (1.0L + 2.74525499e-11L)*khbar/(km_p*kc));//khbar/(km_p*kc)); //); // 1e-10 or near there for atomic lattice, 6378000 for earth
-        outSettings.iz = readItem(vm, "iz", 1e-26);
+        //outSettings.iy = readItem(vm, "iy", (1.0L + 2.74525499e-11L)*khbar/(km_p*kc));//khbar/(km_p*kc)); //); // 1e-10 or near there for atomic lattice, 6378000 for earth
+        outSettings.iy = readItem(vm, "iy", (1.0L + 1e-15L)*khbar/(km_p*kc));//khbar/(km_p*kc)); //); // 1e-10 or near there for atomic lattice, 6378000 for earth
+        outSettings.iz = readItem(vm, "iz", 1e-30);
         outSettings.angularMomentum = readItem(vm, "angularMomentum", khbar); // proton is khbar Earth is 7.07e33
         outSettings.mass = readItem(vm, "mass", km_p); // km_p proton // 5.972e24  kg for earth
         outSettings.nX = readItem(vm, "nX", 1);
@@ -348,8 +349,8 @@ static vector<bigFloat> calcGravityForceBertschinger(const Settings& settings)
     // This calculates the distance to a ring located at 0,0,0 with us where we are, which is the ring at 0.0.
     // If you are only working with one ring that's fine. Otherwise you may be near another ring, and we will fail at this point.
     bigFloat r = calcLittleR(settings.ix, settings.iy, settings.iz, a);
-    if (del > 0.00000001*r) {
-        del = 0.00000001*r;
+    if (del > 5e-9*r) {
+        del = 5e-9*r;
     }
     
     tensor<bigFloat> differentialX = calcDifferentialMetric(settings, del, 0, 0);
